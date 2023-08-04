@@ -1,0 +1,46 @@
+---
+title: "Data Import/Export"
+output: html_notebook
+---
+"readr" is the tidy verse inport and export tool
+{read_csv()}, and {write_csv()}
+
+```{r}
+library(readr)
+```
+
+```{r}
+read_csv("test.csv")
+```
+```{r}
+write_csv(iris, "iris.csv")
+```
+So, When i create the csv file, the file is auto saved for excel? it won't give me an option to not open it there.
+
+```{r}
+install.packages("readxl")
+
+```
+```{r}
+library("readxl")
+```
+
+```{r}
+read_csv("Apex_Testing")
+```
+```{r}
+install.packages("httr")
+```
+```{r}
+library("httr")
+```
+
+```{r}
+r <- GET("tidyverse.org")
+```
+
+
+```{r}
+status_code(r)
+```
+

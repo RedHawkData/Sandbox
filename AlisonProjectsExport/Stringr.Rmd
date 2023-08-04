@@ -1,0 +1,62 @@
+---
+title: "string manipulation"
+output: html_notebook
+---
+{stringr}
+str_
+
+
+
+
+```{r}
+install.packages("stringr")
+library("stringr")
+```
+
+```{r}
+library("dplyr")
+```
+
+
+```{r}
+Bill_long <- pivot_longer(billboard,
+             starts_with("wk"),
+             names_to = "week",
+             values_to = "rank",
+             values_drop_na = TRUE)
+Bill_long
+```
+
+
+```{r}
+x <- c("what" ,"hello", "hi", "whats")
+str_remove(x, "")
+
+```
+```{r}
+Bill_long$week %>% 
+  str_sub(3,4) 
+# str_remove("wk") works too
+```
+
+```{r}
+Bill_long %>% 
+  mutate(week = str_remove(week, "wk"),
+         week = as.integer(week))  
+  
+```
+
+```{r}
+ x %>% 
+  str_detect("")
+#[:alpha:] is the sentax for checking for letters
+#[:space:] is for detecing spaces
+# ^ carrot is for starting with a letter
+#$ is for ending stringr.tidyverse.org contains all of items
+```
+
+
+
+
+
+

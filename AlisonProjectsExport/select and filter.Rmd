@@ -1,0 +1,100 @@
+---
+title: "dplyr, filter and select verb"
+output: html_notebook
+---
+
+all five function:
+filter, -> selecting rows
+select, -> selecting columns
+mutate, add/change columns
+arrange, order rows
+summarize
+```{r}
+library(dplyr)
+```
+
+
+```{r}
+starwars
+```
+
+```{r}
+starwars %>% 
+  class
+```
+
+```{r}
+starwars %>% 
+  filter(eye_color == "black") %>% 
+  filter(height > 170)
+```
+
+
+```{r}
+starwars %>% 
+  select(2:7)
+
+```
+
+
+```{r}
+starwars %>% 
+  select(c(2:3,5:7))
+```
+
+# the period "." in a pipeline references the data that is currently being put into the pipeline, in this example it's starwars
+```{r}
+starwars %>% 
+  select(which(colnames(.) == "height"): which(colnames(.) == "birth_year"))
+```
+
+
+```{r}
+starwars %>% 
+  select(height:birth_year, - hair_color)
+```
+
+
+
+
+```{r}
+starwars %>% 
+  select(height:birth_year, everything()
+         )
+
+```
+starts_with, ends_with, contains
+```{r}
+starwars %>% 
+  select(contains("color"))
+```
+
+
+```{r}
+starwars %>% 
+  select(starts_with("e"))
+```
+
+```{r}
+starwars %>% 
+  select(contains("_color"))
+```
+
+```{r}
+iris %>% 
+  select(Species, contains("petal"))
+```
+where()
+```{r}
+starwars %>% 
+  select(where(is.numeric))
+```
+```{r}
+iris %>% 
+  select(!ends_with("Width"))
+```
+
+```{r}
+iris %>% 
+  select(starts_with("Petal") | ends_with("Width"))
+```

@@ -1,0 +1,31 @@
+---
+title: "Functions"
+output: html_notebook
+---
+
+```{r}
+unlist(lapply(rownames(mtcars), nchar))
+```
+
+```{r}
+random_function <- function(name){
+  # if automatic (==0)
+  if (mtcars[name,9] ==0){
+    mtcars[name,1]
+  }else{            #if manual (==1)
+    mtcars[name,1]^2
+  }
+  
+}
+```
+
+```{r}
+unlist(lapply(rownames(mtcars), function(name){
+    if(mtcars[name,9] == 0){
+        mtcars[name,1]
+    }else{
+        mtcars[name,1]^2
+    }
+}))
+```
+

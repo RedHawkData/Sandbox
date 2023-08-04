@@ -1,0 +1,98 @@
+---
+title: "tidyr data pivoting"
+output: html_notebook
+---
+
+{tidyrl}
+
+pivot_longer
+pivot_wider
+
+reminder that for data to be tidy
+1. each column as one variable
+2. a variable shouldn't be spread across columns 
+3. each row should have only one instance/observation
+4. each cell should only have one value
+
+long data is "tidy"
+wide data is "messy"
+```{r}
+library(tidyr)
+
+messy_data <- tibble::tribble(
+  ~Student, ~ Quiz1,~ Quiz2, ~Test1,
+  "AS", "F", NA, NA,
+  "BE", "B", "C", "B",
+  "Q", "A", "A", "B"
+)
+
+messy_data
+```
+
+```{r}
+tidy_data  <- pivot_longer(messy_data, -Student, names_to = "asignment", values_to = "grade"  )
+tidy_data
+```
+
+```{r}
+pivot_wider(tidy_data, names_from = "asignment", values_from = "grade")
+```
+
+
+```{r}
+iris %>% 
+  mutate(number = Petal.Length + Petal.Width) %>% 
+  summarize(mean = mean(number))
+  
+  
+```
+
+
+```{r}
+billboard %>% 
+  select(starts_with("wk"))
+  
+
+```
+
+```{r}
+billboard %>% 
+  select(1:"wk30") %>% 
+  drop_na()
+```
+
+
+```{r}
+billboard_longer <- billboard %>% 
+  pivot_longer(
+    cols = starts_with("wk"),
+    names_to = "week",
+    values_to = "rank",
+    values_drop_na = TRUE
+  )
+
+billboard_longer %>% 
+  filter(artist == "2 Pac")
+
+```
+
+
+```{r}
+billboard_longer %>% 
+  group_by(track) %>% 
+  summarise(highest_rank = min(rank)) %>% 
+  arrange(highest_rank) %>% 
+  group_by(highest_rank) %>% 
+  summarise(n = n())
+
+  
+  
+```
+
+
+
+
+
+
+
+

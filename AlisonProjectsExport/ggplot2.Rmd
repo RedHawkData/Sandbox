@@ -1,0 +1,59 @@
+---
+title: "data visualization"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+```
+
+```{r}
+glimpse(mpg)
+```
+
+```{r}
+str(mpg)
+```
+
+```{r}
+summary(mpg)
+```
+
+```{r}
+skimr::skim(mpg)
+```
+
+
+
+
+```{r}
+mpg %>% 
+  ggplot( mapping = aes(x = displ, y = cty)) +
+  geom_point()
+#geom_point is scatter plot
+#color, size, alpha, shape are different parameter.  You needs to use aes to specifiy variance based on variable.
+```
+
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) + geom_point()
+```
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy, size = drv))+
+  geom_point()
+```
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy, color= drv, size= drv, alpha = displ, shape= class)) +
+  geom_point()
+```
+
+```{r}
+ggplot(mpg, aes(x = hwy, y = displ))+
+  geom_point(color= "blue", size = .5, shape = 1)
+```
+
+

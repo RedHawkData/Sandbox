@@ -1,0 +1,112 @@
+---
+title: " Data preprocessing"
+output: html_notebook
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(skimr)
+library(rsample)
+library(recipes)
+```
+
+
+```{r}
+skim(Apex_Testing)
+```
+feature engenering 
+```{r}
+data <- starwars %>% 
+  select(mass, height, gender )
+```
+
+```{r}
+data_split <- initial_split(data)
+data_training <- training(data_split)
+data_test <- testing(data_split)
+```
+
+```{r}
+ data_training <- data_training %>% 
+  mutate(BMI= mass/height)
+data_training
+```
+
+```{r}
+skim(data_training)
+any(is.na(data_training))
+```
+```{r}
+colSums(is.na(data_training))
+```
+data cleaning
+```{r}
+data_tr_imputed <- data_training %>% 
+  drop_na(height, gender) %>% 
+  mutate(mass = ifelse(is.na(mass), mean(mass, na.rm = TRUE),mass), BMI = ifelse(is.na(BMI), mean(BMI,na.rm = TRUE), BMI))
+```
+
+
+encoding catorgical data
+
+```{r}
+iris %>% 
+  mutate(Species_versicolor = ifelse(Species =="versicolor", 1 ,0),
+         Species_virignica = ifelse(Species == "virginica",1,0))
+  
+```
+
+```{r}
+data_tr_imputed_encoded <-data_tr_imputed %>% 
+  mutate(gender_masculine = ifelse(gender == "masculine", 1,0)) %>% 
+  select(-gender)
+```
+
+
+feature Scaling
+
+```{r}
+normalize <-  function(feature){
+  (feature -mean(feature))/ sd(feature)
+}
+```
+
+```{r}
+data_tr_imputed_encoded_norm <- data_tr_imputed_encoded %>% 
+  mutate_all(normalize)
+```
+
+
+complete preprocessing pipeline
+```{r}
+data_train_pipeline <- data_training %>% 
+  mutate(BMI = mass / height) %>% 
+  drop_na(height,gender) %>% 
+  mutate(mass = ifelse(is.na(mass), mean(mass, na.rm = TRUE), mass),
+         BMI = ifelse(is.na(BMI), mean(BMI, na.rm = TRUE), BMI)) %>%
+  mutate(gender_masculine = ifelse(gender == "masculine", 1,0)) %>% 
+  select(-gender) %>% 
+  mutate_all(normalize)
+
+```
+
+```{r}
+waldo::compare(data_train_pipeline, data_tr_imputed_encoded_norm)
+```
+```{r}
+asdf <- data_training %>% 
+  recipe() %>% 
+  step_mutate(BMI = mass/height) %>% 
+  step_naomit(height,gender) %>% 
+  step_impute_mean(mass,BMI) %>% 
+  step_dummy(gender) %>% 
+  step_normalize(everything()) %>% 
+  prep()
+
+
+
+```
+
+
+

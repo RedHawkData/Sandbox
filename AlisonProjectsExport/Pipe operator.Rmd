@@ -1,0 +1,30 @@
+---
+title: "The Pipe Operator"
+output: html_notebook
+---
+
+
+```{r}
+library(margrittr)
+```
+
+shortcut control, shift, m
+```{r}
+%>% 
+```
+
+```{r}
+mean(1:10)
+```
+
+```{r}
+1:10 %>% mean() #same as mean(1:10)
+```
+
+
+```{r}
+"Hello" %>% # hello is being the first argument in the piped
+  paste("world")
+```
+
+

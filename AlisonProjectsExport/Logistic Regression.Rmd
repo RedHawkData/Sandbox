@@ -1,0 +1,98 @@
+---
+title: "Logistic Regression"
+output: html_notebook
+---
+
+
+
+
+```{r}
+library(tidyr)
+library(ggplot2)
+library(corrr)
+library(rsample)
+library(recipes)
+library(parsnip)
+library(yardstick)
+library(skimr)
+library(titanic)
+```
+
+```{r}
+data <- titanic_train
+data_split <- initial_split(data)
+train <- training(data_split)
+test <- testing(data_split)
+
+skim(train)
+View(data)
+```
+```{r} 
+#this is creating the data "recipe" that transforms the data from titanic. This way if we want to do different initial splits to create an ensemble of models, we can put in those splits into the recipe.
+data_rec <- recipe(Survived ~ ., train) %>% 
+  step_mutate( Survived = ifelse( Survived == 0, "Died", "Survived")) %>% 
+  step_string2factor(Survived) %>% 
+  step_rm(PassengerId, Name, Ticket, Cabin) %>% 
+  step_impute_mean(Age) %>% 
+  step_dummy(all_nominal(), -all_outcomes()) %>% 
+  step_zv(all_predictors()) %>% 
+  step_center(all_predictors(), -all_nominal()) %>% 
+  step_scale(all_predictors(),-all_nominal()) %>% 
+  prep()
+
+```
+
+
+```{r}
+fitted_model <- logistic_reg() %>% 
+  set_engine("glm") %>% #tells the package we use
+  set_mode("classification") %>% 
+  fit(Survived ~. , data = bake(data_prep, train) ) 
+```
+
+
+```{r}
+
+bake(data_prep,train) %>%  View()
+ #data prep is the recipe that was created the data read "bake using the recipe data_prep, with the data ingredients train"
+```
+
+```{r}
+predictions <- fitted_model %>% 
+  predict(new_data = bake(data_prep, test)) %>% 
+  bind_cols(
+    bake(data_prep, test) %>% 
+      select(Survived)
+  )
+```
+
+
+```{r}
+predictions %>% 
+  conf_mat(Survived, .pred_class)
+```
+```{r}
+predictions %>% 
+  metrics(Survived, .pred_class) %>% 
+  select(-.estimator) %>% 
+  filter(.metric == "accuracy")
+```
+
+
+```{r}
+predictions %>% 
+  precision(Survived, .pred_class) %>% 
+  bind_rows(
+    predictions %>% 
+      recall(Survived, .pred_class)
+  ) %>% 
+  select(- .estimator) %>% 
+  mutate(.estimate = round(.estimate*100, 2))
+  
+```
+```{r}
+predictions %>% 
+  f_meas(Survived, .pred_class)
+```
+
+

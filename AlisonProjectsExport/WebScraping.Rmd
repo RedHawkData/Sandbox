@@ -1,0 +1,147 @@
+---
+title: "Web Scraping {rvest}"
+output: html_notebook
+---
+
+
+
+
+```{r}
+install.packages("rvest")
+
+```
+https://www.imdb.com/chart/top/
+
+html tags (ex: <html>, <body>, <div>)
+  <html> </html>
+  <body> </body>
+  
+attributes 
+  <div id= "" class="" styles=""></div>
+  <a href= "www.google.com>Link</a>
+  extant id is from # and class is .
+  
+  
+```{r}
+library(rvest)
+library(stringr)
+library(tidyr)
+library(dplyr)
+```
+  
+  
+```{r}
+ imbd_url <- "https://www.imdb.com/chart/top/"
+top_movies <- read_html(imbd_url)
+```
+
+
+```{r}
+titles <- top_movies %>% 
+  html_nodes("tbody tr td.titleColumn") %>% 
+  html_text()
+
+```
+
+
+```{r}
+titles2 <- titles %>% 
+  str_trim() %>% 
+  str_split("\n")
+```
+
+```{r}
+
+lapply(titles2, function(movie){
+  movie[2]
+}) %>% 
+  unlist() %>% 
+str_trim()
+
+```
+
+
+
+Extract Title
+```{r}
+title <- top_movies %>% 
+  html_nodes("tbody tr td.titleColumn") %>% 
+  html_text() %>% 
+  str_trim() %>% 
+  str_split("\n") %>% 
+  lapply( function(movie){
+    movie[2] 
+  }) %>% 
+  unlist() %>% 
+  str_trim()
+```
+
+
+Extract Years
+```{r}
+years <- top_movies %>% 
+  html_nodes("tbody tr td.titleColumn") %>% 
+  html_text() %>% 
+  str_trim() %>% 
+  str_split("\n") %>% 
+  lapply( function(movie){
+    movie[3] 
+  }) %>% 
+  unlist() %>% 
+  str_trim() %>% 
+  str_replace("\\(","") %>% 
+  str_replace("\\)","") %>% 
+  as.integer() %>% 
+  print()
+```
+Rank
+```{r}
+rank <- 1:250
+```
+
+
+Extracting Ratings
+```{r}
+ratings <- top_movies %>% 
+  html_nodes(".imdbRating strong") %>% 
+  html_text() %>% 
+  as.numeric()
+```
+
+```{r}
+imdb_tibble <- tibble(Rank = rank, Title = title, Year = years, Ratings = ratings)
+```
+
+```{r}
+imdb_tibble %>% 
+  arrange(desc(Year))
+```
+
+```{r}
+imdb_tibble %>% 
+  group_by(Year) %>% 
+  summarize(Average_Rating = mean(Ratings)) %>% 
+  arrange(desc(Average_Rating))
+```
+
+
+Extracting Links
+```{r}
+links <-top_movies %>% 
+  html_nodes("tbody tr td.titleColumn a") %>% 
+  html_attr("href") %>% 
+  paste0("https://www.imdb.com", .)
+```
+
+Extract Director
+```{r}
+links[1] %>% 
+  read_html() %>% 
+  html_node("div.credit_summary_item a") %>% 
+  html_text()
+  
+```
+
+
+
+

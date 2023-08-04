@@ -1,0 +1,159 @@
+---
+title: "linear regression Full"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+#General visualization
+library(dplyr)
+#General data manipulation 
+library(corrr)
+# Correlation visualization
+library(rsample)
+#partitions data into training and test data
+library(recipes)
+#Preprocessing for ML
+library(parsnip)
+#model training
+```
+
+```{r}
+diamonds
+```
+
+```{r}
+diamonds %>%
+select(where(~!is.factor(.x))) %>% #selecting non-factor values
+  corrr::correlate() %>% #shows correlation b/t all variables
+  corrr::network_plot()# maps the correlation
+```
+
+```{r}
+diamonds %>% 
+  select(where(is.factor)) 
+```
+
+```{r}
+data_split1 <- initial_split(diamonds, strata = price)
+data_train1 <- training(data_split1)
+data_test1 <- testing(data_split1)
+model1 <- lm(price ~ . , data = data_train1)
+summaryz <- summary(model1)
+```
+
+
+
+
+
+```{r}
+high_corr_var <- diamonds %>% 
+  select(where(~!is.factor(.x))) %>% 
+  correlate() %>% 
+  focus(price) %>% 
+  arrange(desc(price)) %>% 
+  filter(price > .5) %>% 
+  pull(term)
+high_corr_var
+focus
+```
+
+```{r}
+data <- diamonds %>% 
+  select(high_corr_var, price)
+```
+
+```{r}
+data_split <- initial_split(data, strata = price)
+data_train <- training(data_split)
+data_test <- testing(data_split)
+```
+
+```{r}
+#lm(output ~ input, data used)
+#lm( ~ . )means the rest of the variables
+ model <- lm(price ~ ., data = data_train)
+summary(model)
+```
+
+
+```{r}
+```
+
+```{r}
+broom::tidy(model) %>% 
+  arrange(p.value)
+```
+
+```{r}
+diamonds %>% 
+  select(where(~ !is.factor(.x)))
+```
+#The Tidy Model Approach
+
+#split data
+```{r}
+data_split <- initial_split(diamonds, strata = price)
+data_train <- training(data_split)
+data_test <- testing(data_split)
+```
+
+#Data Preprocessing
+```{r}
+data_rec <- data_train %>% 
+  recipe(price ~ ., data_test) %>% 
+  step_dummy(all_nominal()) %>% 
+  step_normalize(all_numeric(), -all_outcomes()) %>% 
+  prep()
+
+juiced <- juice(data_rec)
+```
+
+```{r}
+lm_model <- parsnip::linear_reg() %>% 
+  set_engine("lm") %>% 
+  set_mode("regression")
+```
+
+```{r}
+lm_fit <- fit(lm_model, price ~ ., juiced)
+```
+
+
+```{r}
+glance(lm_fit)
+
+tidy(lm_fit)
+```
+```{r}
+results_train <- lm_fit %>% 
+  predict(new_data = juiced) %>% 
+  mutate(truth = data_train$price)
+results_test <- lm_fit %>% 
+  predict( new_data = bake(data_rec, data_test)) %>% 
+  mutate(truth = data_test$price)
+
+results <- results_train %>% 
+  mutate(type = "train") %>% 
+  bind_rows(
+    results_train %>% 
+      mutate(type = "test")
+  )
+```
+
+
+
+```{r}
+results %>% 
+  group_by(type) %>% 
+  yardstick::rmse(truth, .pred) %>% 
+```
+```{r}
+ggplot(results, aes(truth, .pred)) + 
+  geom_point()+
+  geom_abline(color= "red", linewidth = 2) +
+  coord_fixed()
+```
+
+
+

@@ -1,0 +1,111 @@
+---
+title: "dplyr verbs:  mutate, arrange, and summarize"
+output: html_notebook
+---
+select column
+filter row
+mutate 
+arrange order
+summarize
+
+```{r}
+library("dplyr")
+```
+
+```{r}
+starwars
+```
+
+
+BMI  = mass/ ((height/100)^2)
+bmi is the name of oour  new column and it's following the convention of the current data set.
+```{r}
+starwars %>% 
+  mutate(bmi = mass/((height/100)^2),
+         bmi = round(bmi, 2)) %>%   
+  select(name,  height, mass, bmi)
+```
+
+```{r}
+iris2  <- iris %>% 
+  select(Species, starts_with("Petal")) %>%   mutate(Petal.Area = Petal.Length * Petal.Width)
+```
+
+```{r}
+iris2$Petal.Area %>% 
+  
+```
+
+
+```{r}
+iris %>% 
+  select(Species, starts_with("Petal")) %>%     mutate(Petal.Area = Petal.Length * Petal.Width) %>% 
+filter(4 <  Petal.Area &  Petal.Area < 6) %>% 
+select(-Petal.Area)
+
+```
+
+
+```{r}
+starwars %>% 
+  select(name,homeworld,species) %>% 
+  mutate(homeworld =  as.factor(homeworld),
+         species = as.factor(species))
+```
+```{r}
+starwars %>% 
+  select(name, homeworld, species) %>% 
+  mutate(across(c(homeworld, species), as.factor))
+```
+
+
+```{r}
+starwars %>% 
+  arrange(desc(height))
+```
+
+```{r}
+mtcars %>% 
+  arrange(desc(cyl),desc(disp))
+```
+
+
+
+```{r}
+mtcars %>% 
+  group_by(cyl) %>% 
+  summarize(mean  = mean(disp), n = n())
+```
+```{r}
+mtcars %>% 
+  group_by(carb) %>% 
+  summarize(mean = mean(disp), n = n())
+  
+```
+
+```{r}
+summarize(group_by(mtcars,carb), mean = mean(mpg), n = n())
+```
+
+```{r}
+mtcars
+```
+
+```{r}
+starwars
+```
+
+```{r}
+starwars %>% 
+  group_by(species) %>% 
+  summarize(
+    count = n(),
+    mass = mean(mass, na.rm = T)
+  ) %>% 
+  filter(
+    count > 1,
+   
+  ) %>% 
+  arrange(desc(count))
+```
+

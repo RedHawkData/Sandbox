@@ -1,0 +1,104 @@
+---
+title: "single and bivariante graphs"
+output: html_notebook
+---
+
+
+R graph Gallary is  a  aweseome resourse
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(forcats)
+```
+
+historgram  are for continous variables
+```{r}
+ggplot(data = mpg)+
+  geom_histogram(mapping  = aes(x = displ), bins = 10)
+ggplot(data = mpg)+
+  geom_histogram(mapping  = aes(x = displ), bins = 20)
+```
+
+```{r}
+ggplot(data = mpg)+
+  geom_freqpoly(mapping  = aes(x = displ))
+```
+```{r}
+ggplot(data = mpg)+
+  geom_density(mapping  = aes(x = displ), bins = 100)
+```
+
+
+
+```{r}
+ggplot(data = mpg) +
+  geom_bar(mapping = aes(x = class, fill =drv ))
+```
+
+```{r}
+ggplot(data = mpg)+
+  geom_bar( mapping = aes(x = forcats::fct_infreq(class), color = class))
+
+```
+
+```{r}
+ggplot(data = mpg)+
+  geom_bar( mapping = aes(x= forcats::fct_infreq(class), fill = drv), position = "fill")
+```
+
+
+```{r}
+
+ggplot(data = mpg)+
+  geom_boxplot(mapping =  aes(class,displ))
+
+```
+
+```{r}
+ggplot(data = mpg)+
+  geom_violin(mapping =  aes(class,displ))
+
+```
+
+
+
+```{r}
+
+```
+
+```{r}
+ggplot(data = mpg)+
+  geom_smooth( mapping = aes(hwy,displ), se = FALSE, color = "red", linetype = 3)
+#se takes away the probability area.
+#linetype 
+#size
+```
+
+
+```{r}
+mpg_class_displacement  <- mpg %>% 
+  group_by(class) %>% 
+  summarize(mean_displ = mean(displ))
+```
+
+
+```{r}
+ggplot(mpg_class_displacement, aes(class, mean_displ))+
+  geom_col()
+```
+```{r}
+ggplot(data= mpg)+
+  geom_density2d(aes(displ,hwy))
+```
+
+
+
+
+
+
+
+
+
+
+

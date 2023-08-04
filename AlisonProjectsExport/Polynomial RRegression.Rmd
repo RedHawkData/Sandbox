@@ -1,0 +1,30 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+# Load the required libraries
+library(ggplot2)
+
+# Input data
+hours_studied <- c(1, 2, 3, 4, 5,6,7)
+exam_score <- c(65, 78, 88, 90, 85,91,93)
+
+# Create a data frame
+data <- data.frame(Hours_Studied = hours_studied, Exam_Score = exam_score)
+
+# Perform quadratic polynomial regression
+model <- lm(Exam_Score ~ poly(Hours_Studied, 6), data = data)
+
+# Predict exam scores using the model
+data$Predicted_Score <- predict(model)
+
+# Plot the original data and the regression line
+ggplot(data, aes(x = Hours_Studied, y = Exam_Score)) +
+  geom_point(color = "blue") +
+  geom_smooth(aes(y = Predicted_Score), color = "red") +
+  labs(x = "Hours Studied", y = "Exam Score") +
+  ggtitle("Quadratic Polynomial Regression") +
+  theme_minimal()
+```
+
