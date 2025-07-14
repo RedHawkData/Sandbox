@@ -1,0 +1,70 @@
+---
+title: "R Notebook"
+output: smote_testing
+---
+
+
+```{r}
+#smote test data
+starting_amount = 500
+majority_class = 400
+minority_class = starting_amount - majority_class
+start_inital <- tibble(
+  response_var = as.factor(c(rep(1, majority_class), rep(0,minority_class))),
+  predictor_1 = c(rnorm(majority_class, mean = 10, sd = 2), rnorm(minority_class, mean = 14, sd = 2)),
+  predictor_2 = c(runif(majority_class), runif(minority_class,1,2)),
+  predictor_3 = c(1:majority_class, (majority_class+1):starting_amount*2),
+  predictor_4 = c(rbinom(majority_class, 1, .8), rbinom(minority_class, 1, .2))
+)
+#visual of the data
+ggplot(start_inital,
+ aes(x = predictor_1, 
+     y = predictor_3,
+     colour = response_var
+     )
+ ) +
+  geom_point()
+
+#precleaning for SMOTE algorthim
+response_variable <- start_inital[, which(names(start_inital) == "response_var")]
+pred_variables <- start_inital[, -which(names(start_inital) == "response_var")]
+#deploying SMOTE
+smote_start <- SMOTE(X = pred_variables, target = response_variable, K = 5)
+smote_start <- smote_start$data %>% mutate(predictor_4 = round(predictor_4))
+```
+
+```{r}
+#creating the model for testing
+smote_split_reg <- initial_split(smote_start, .8)
+smote_train_reg <- smote_split_reg %>% training()
+smote_test_reg <- smote_split_reg %>%  testing()
+
+smote_model_reg <- logistic_reg() %>% fit(as.factor(class) ~. , data = smote_train_reg)
+
+smote_pred_class_reg <- predict(smote_model_reg,
+                       new_data = smote_test_reg,
+                       type = 'class'
+                       )
+smote_pred_prob_reg <- predict(smote_model_reg,
+                      new_data = smote_test_reg,
+                      type = 'prob'
+                      )
+#pred_class_reg
+#pred_prod_reg
+
+smote_test_reg$class <- as.factor(smote_test_reg$class)
+
+results_reg <- smote_test_reg %>% bind_cols(smote_pred_class_reg)
+
+cm_SMOTE <- caret::confusionMatrix(factor(results_reg$class), factor(results_reg$.pred_class))
+
+```
+
+
+
+
+
+
+
+
+
