@@ -1,0 +1,70 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(tidymodels)
+library(ranger)
+
+# Simulated dataset: Assume 'graduate' is the target variable (binary)
+set.seed(123)
+data <- tibble(
+  gpa = runif(1000, 2.0, 4.0),  # Continuous feature
+  socio_status = sample(c("low", "middle", "high"), 1000, replace = TRUE),  # Categorical feature
+  study_hours = rnorm(1000, mean = 10, sd = 3),  # Continuous feature
+  graduate = sample(0:1, 1000, replace = TRUE)  # Binary target variable
+)
+
+# Convert categorical variables to factors
+data <- data %>%
+  mutate(graduate = factor(graduate),  # Make target a factor
+         socio_status = factor(socio_status))
+
+# Split into training (80%) and testing (20%)
+set.seed(123)
+data_split <- initial_split(data, prop = 0.8, strata = graduate)
+train_data <- training(data_split)
+test_data  <- testing(data_split)
+
+# Define the Random Forest model
+rf_model <- rand_forest(mode = "classification", trees = 500) %>%
+  set_engine("ranger")
+
+# Create a recipe for preprocessing
+rf_recipe <- recipe(graduate ~ ., data = train_data) %>%
+  step_dummy(all_nominal_predictors()) %>%  # Convert categorical to dummy variables
+  step_normalize(all_numeric_predictors()) # Normalize numerical features
+
+# Bundle into a workflow
+rf_workflow <- workflow() %>%
+  add_model(rf_model) %>%
+  add_recipe(rf_recipe)
+
+# Perform cross-validation (5-fold)
+set.seed(123)
+cv_folds <- vfold_cv(train_data, v = 5)
+
+# Train the model with cross-validation
+rf_results <- fit_resamples(
+  rf_workflow,
+  resamples = cv_folds,
+  metrics = metric_set(yardstick::accuracy, yardstick::roc_auc)
+)
+
+# Print model performance
+collect_metrics(rf_results)
+
+# Final fit on the full training data
+rf_final_fit <- fit(rf_workflow, data = train_data)
+
+# Predictions on test data
+rf_predictions <- predict(rf_final_fit, test_data, type = "prob") %>%
+  bind_cols(test_data)
+
+# Evaluate on test data
+rf_metrics <- rf_predictions %>%
+  roc_auc(truth = graduate, .pred_1)  # Assuming class 1 is the positive class
+
+rf_metrics
+```
+
