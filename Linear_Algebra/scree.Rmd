@@ -1,0 +1,22 @@
+---
+title: "R Notebook"
+output: scree_plot
+---
+```{r}
+ results <- as.matrix(sapply(results2, as.numeric)) %>%  prcomp( scale = TRUE)
+var_explained <- results$sdev^2 / sum(results$sdev^2)
+
+tidy_data <- tibble(
+  "variance_explained" = var_explained,
+  "principle_component" = 1:4
+)
+
+ggplot(tidy_data)+
+  geom_line(aes(x = principle_component, y = variance_explained))+
+  xlab("principle components")+
+  ylab("variance explained")+
+  ggtitle("scree plot")
+```
+
+
+
