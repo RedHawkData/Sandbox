@@ -1,0 +1,249 @@
+---
+title: "R Notebook"
+output: sampling expermentation 
+---
+
+
+```{r}
+#getting libraries
+library(caret) #classificant and regression training
+library(parsnip) #general linear models
+library(rsample)#creating training partitions and metrics for models
+library(DBI) #creats ODBC connects
+library(tidyverse) # data minipulation
+library(dplyr) # data minipulatin
+library(pROC) #creating ROC curve
+library(glmnet) #for general linear models
+library(ROSE)
+library(smotefamily)
+library(tidymodels)
+```
+
+
+# Deleted source data for security
+
+```{r}
+#preprocessing
+preprocessed <- cohort_10_years %>%
+  filter(disposition != 'Currently Active') %>% 
+  filter(!is.na(gpa)) %>% 
+  mutate(graduate = ifelse(category == "Graduate", 1, 0)) %>%
+  select(graduate, economically_disadvantaged, gpa,met_reading, met_math, gpa_less_than_2) 
+
+# dummy <- ifelse(
+#   preprocessed$graduate == 1,
+#   rnorm(n = nrow(preprocessed), mean = 9, sd = 2), 
+#   rnorm(n = nrow(preprocessed), mean = 5, sd = 2))
+
+```
+undersampling of my graduated students so that it's 50-50 
+```{r}
+minority <- preprocessed %>% filter(graduate == 0)
+majority <- preprocessed %>% filter(graduate == 1) %>% sample_n(nrow(minority))
+balanced_preprocessed <- dplyr::bind_rows(majority, minority)
+
+
+split_undersample <- initial_split(balanced_preprocessed, .8)
+train_undersample <- split_undersample %>% training() %>% mutate(gpa = as.numeric(scale(gpa)))
+test_undersample <- split_undersample %>%  testing() %>% mutate(gpa = as.numeric(scale(gpa)))
+
+model_undersample <- logistic_reg() %>% fit(as_factor(graduate) ~. , data = train_undersample)
+
+pred_class_undersample <- predict(model_undersample,
+                       new_data = test_undersample,
+                       type = 'class'
+                       )
+pred_prod_undersample <- predict(model_undersample,
+                      new_data = test_undersample,
+                      type = 'prob'
+                      )
+#pred_class_undersample
+#pred_prod_undersample
+
+test_undersample$graduate <- as.factor(test_undersample$graduate)
+
+results_undersample <- test_undersample %>% bind_cols(pred_class_undersample, pred_prod_undersample[,2])
+#results_undersample
+
+cm_undersample <- confusionMatrix(factor(results_undersample$graduate), factor(results_undersample$.pred_class))
+```
+
+SMOTE adjusting of data
+```{r}
+
+smote_target <- preprocessed %>% as_tibble() %>% select(graduate)
+smote_pred_var <- preprocessed %>% as_tibble() %>% select(-graduate, -case_wt)
+smote_data <- SMOTE(smote_pred_var, smote_target)
+
+```
+
+
+reg data
+```{r}
+split_reg <- initial_split(preprocessed, .8)
+train_reg <- split_reg %>% training()
+test_reg <- split_reg %>%  testing()
+
+model_reg <- logistic_reg() %>% fit(as_factor(graduate) ~. , data = train_reg)
+
+pred_class_reg <- predict(model_reg,
+                       new_data = test_reg,
+                       type = 'class'
+                       )
+pred_prod_reg <- predict(model_reg,
+                      new_data = test_reg,
+                      type = 'prob'
+                      )
+#pred_class_reg
+#pred_prod_reg
+
+test_reg$graduate <- as.factor(test_reg$graduate)
+
+results_reg <- test_reg %>% bind_cols(pred_class_reg, pred_prod_reg[,2])
+#results_reg
+cm_reg <- caret::confusionMatrix(factor(results_reg$graduate), factor(results_reg$.pred_class))
+```
+
+
+```{r}
+#This is for weights on the regualar data
+#create weights first
+class_count <- table(preprocessed$graduate)
+total_samples <- sum(class_count)
+class_weight <- total_samples/ (2*class_count)
+preprocessed <- preprocessed %>% 
+  mutate(case_wt = ifelse(graduate == 1, class_weight["1"], class_weight["0"])) %>% 
+  mutate(graduate = as.factor(graduate))
+
+weight_split <- initial_split(preprocessed, prop = .8, strata = graduate)
+weight_train <- training(weight_split)
+weight_test <- testing(weight_split)
+
+weight_logistic_recipe <- recipe(graduate ~ ., data = weight_train) %>%
+  step_normalize(all_numeric_predictors()) %>%  # Normalize numeric predictors
+  update_role(case_wt, new_role = "case_weight")
+
+weight_logistic_model <- logistic_reg() %>%
+  set_engine("glm")
+
+weight_logistic_workflow <- workflow() %>%
+  add_model(weight_logistic_model) %>%
+  add_recipe(weight_logistic_recipe)
+
+weight_logistic_fit <- weight_logistic_workflow %>%
+  fit(data = weight_train)
+
+weight_logistic_preds <- weight_logistic_fit %>%
+  predict(weight_test, type = "prob") %>%
+  bind_cols(weight_test)
+
+weight_logistic_preds <-  weight_logistic_preds %>% mutate(pred_1 = as.factor(round(.pred_1)))
+cm_weight <- confusionMatrix(weight_logistic_preds$graduate, weight_logistic_preds$pred_1)
+```
+
+
+
+
+
+
+
+comparison of regular sample and undersampling
+```{r}
+cm_reg
+cm_undersample
+cm_weight
+```
+
+
+
+
+```{r}
+#ROC comparision of data
+roc_curve_reg <- roc(results_reg$graduate, results_reg$.pred_1 )
+roc_curve_undersample <- roc(results_undersample$graduate, results_undersample$.pred_1)
+roc_curve_weight <- roc(weight_logistic_preds$graduate, as.numeric(weight_logistic_preds$.pred_1))
+plot(roc_curve_reg, col = "blue")  # Visualizing ROC curve
+plot(roc_curve_undersample)
+plot(roc_curve_weight, col = "red")
+auc(roc_curve_weight)
+auc(roc_curve_reg)
+auc(roc_curve_undersample)
+```
+
+
+
+```{r}
+
+# Assume 'train_data' is your training dataset and 'target' is the response variable
+# X: predictor matrix (exclude target column), y: response variable
+
+X <- as.matrix(balanced_preprocessed[, -which(names(balanced_preprocessed) == "graduate")])  # predictor variables
+y <- balanced_preprocessed$graduate  # target variable
+
+# Create a sequence for alpha values from 1 to 0 with 0.01 intervals
+alpha_values <- seq(1, 0, by = -0.1)
+
+# Initialize variables to store the best results
+best_alpha <- NULL
+best_accuracy <- 0
+best_model <- NULL
+all_accuracy <- c()
+all_alpha <- alpha_values
+
+
+# Loop through alpha values and train models
+for (alpha in alpha_values) {
+  # Fit elastic net model
+  model <- cv.glmnet(X, y, alpha = alpha, family = "binomial", type.measure = "class")
+  
+  # Get the predicted values for the model
+  predictions <- predict(model, X, type = "class", s = "lambda.min")
+  
+  # Calculate the accuracy
+  accuracy <- mean(predictions == y)
+  all_accuracy <- append(all_accuracy, accuracy)
+  # Update best model if accuracy improves
+  if (accuracy > best_accuracy) {
+    best_accuracy <- accuracy
+    best_alpha <- alpha
+    best_model <- model
+  }
+}
+
+# Output best model and alpha
+cat("Best Alpha: ", best_alpha, "\n")
+cat("Best Accuracy: ", best_accuracy, "\n")
+rbind(all_alpha,all_accuracy)
+```
+
+```{r}
+accuracy_vs_threshold <- function(actual, predictor, steps = .01){
+   new_table <- tibble(cm_threshold = numeric(0), accuracy = numeric(0))
+   
+   for (i in 0:(1/steps)) {
+      cm_predictor <- factor(ifelse(predictor > (i* steps), 1, 0), levels = c(0, 1))
+      cm_actual <- factor(actual, levels = c(0,1))
+      cm <- confusionMatrix(
+         data = cm_actual,
+         reference = cm_predictor
+        )
+      new_row <- tibble(cm_threshold = i * steps, accuracy = cm$overall[[1]])
+      new_table <- new_table %>% add_row(new_row)
+   }
+new_table  %>% filter(accuracy == max(accuracy))
+}
+```
+
+
+```{r}
+accuracy_vs_threshold(weight_logistic_preds$graduate, weight_logistic_preds$.pred_1, steps = .0001)
+#accuracy_vs_threshold(results_undersample$graduate, results_undersample$.pred_1, steps = .0001)
+#accuracy_vs_threshold(results_reg$graduate, results_reg$.pred_1, steps = .0001)
+
+```
+
+
+
+
+
+
